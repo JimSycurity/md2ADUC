@@ -46,9 +46,9 @@
     Exports domain structure excluding system containers and service accounts to a markdown file.
 
 .NOTES
-    Author: Security Consultant
+    Author: Jim Sykora
     Requires: Active Directory PowerShell Module
-    Version: 1.0
+    Version: 1.1
 #>
 
 [CmdletBinding()]
@@ -69,18 +69,14 @@ param(
     
     [switch]$IncludeContacts,
     
-    [switch]$ExcludeServiceAccounts,
-    
-    [switch]$Verbose
+    [switch]$ExcludeServiceAccounts
 )
 
 #region Functions
 
 function Write-VerboseLog {
     param([string]$Message)
-    if ($Verbose) {
-        Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $Message" -ForegroundColor Gray
-    }
+    Write-Verbose "[$(Get-Date -Format 'HH:mm:ss')] $Message"
 }
 
 function Get-ObjectType {

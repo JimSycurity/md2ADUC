@@ -39,6 +39,7 @@
     - Description (can be included as comments)
 #>
 
+[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
     [string]$CsvFile,
@@ -58,6 +59,16 @@ if (-not (Test-Path $CsvFile)) {
 # Import CSV
 Write-Host "Importing CSV file..." -ForegroundColor Cyan
 $adObjects = Import-Csv -Path $CsvFile
+
+# Show CSV info for debugging
+Write-Host "CSV contains $($adObjects.Count) objects" -ForegroundColor Yellow
+if ($adObjects.Count -gt 0) {
+    Write-Host "Available columns: $($adObjects[0].PSObject.Properties.Name -join ', ')" -ForegroundColor Gray
+    
+    # Show sample of first object
+    Write-Host "`nSample object:" -ForegroundColor Gray
+    $adObjects[0] | Format-List | Out-String | Write-Host
+}
 
 # Verify required columns
 $requiredColumns = @('Name')
@@ -85,18 +96,64 @@ function Get-ObjectDN($obj) {
 
 # Function to get object class
 function Get-ObjectClass($obj) {
+    $rawClass = $null
+    
+    # Get the raw class value
     if ($obj.PSObject.Properties['ObjectClass']) {
-        return $obj.ObjectClass
+        $rawClass = $obj.ObjectClass
     } elseif ($obj.PSObject.Properties['Type']) {
-        return $obj.Type
+        $rawClass = $obj.Type
     } elseif ($obj.PSObject.Properties['objectCategory']) {
         # Try to infer from objectCategory
         if ($obj.objectCategory -like '*Person*') { return 'user' }
         if ($obj.objectCategory -like '*Computer*') { return 'computer' }
         if ($obj.objectCategory -like '*Group*') { return 'group' }
         if ($obj.objectCategory -like '*Organizational-Unit*') { return 'organizationalUnit' }
+        return 'unknown'
     }
-    return 'unknown'
+    
+    if ($null -eq $rawClass) {
+        return 'unknown'
+    }
+
+    if ($rawClass -isnot [string]) {
+        $rawClass = [string]$rawClass
+    }
+
+    $rawClass = $rawClass.Trim()
+
+    if ([string]::IsNullOrWhiteSpace($rawClass)) {
+        return 'unknown'
+    }
+
+    # Normalize the object class
+    switch -Wildcard ($rawClass) {
+        'user' { return 'user' }
+        'computer' { return 'computer' }
+        'group' { return 'group' }
+        'contact' { return 'contact' }
+        'organizationalUnit' { return 'organizationalUnit' }
+        'container' { return 'container' }
+        'domainDNS' { return 'domainDNS' }
+        'domain' { return 'domainDNS' }
+        'printQueue' { return 'printer' }
+        'volume' { return 'share' }
+        'groupPolicyContainer' { return 'policy' }
+        'msDS-ManagedServiceAccount' { return 'computer' }
+        'msDS-GroupManagedServiceAccount' { return 'computer' }
+        'msExchSystemObjects*' { return 'container' }
+        'msImaging-PSPs' { return 'container' }
+        'rpcContainer' { return 'container' }
+        'msDS-Device*' { return 'computer' }
+        '*ServiceAccount*' { return 'computer' }
+        default { 
+            # Default based on common patterns
+            if ($rawClass -like '*computer*') { return 'computer' }
+            if ($rawClass -like '*user*') { return 'user' }
+            if ($rawClass -like '*group*') { return 'group' }
+            return $rawClass 
+        }
+    }
 }
 
 # Function to parse DN into components
@@ -104,34 +161,105 @@ function Parse-DN {
     param([string]$DN)
     
     $components = @()
+    
+    if ([string]::IsNullOrWhiteSpace($DN)) {
+        return $components
+    }
+    
     $parts = $DN -split ',(?=\w+=)'
     
+    if ($parts.Count -eq 0) {
+        return $components
+    }
+    
+    # Identify trailing DC components (domain root) and leave other DC components alone
+    $domainStartIndex = $parts.Count
     for ($i = $parts.Count - 1; $i -ge 0; $i--) {
-        if ($parts[$i] -match '^(CN|OU)=(.+)$') {
-            $type = $Matches[1]
-            $name = $Matches[2]
+        $part = $parts[$i].Trim()
+        if ($part -match '^DC=(.+)$') {
+            $domainStartIndex = $i
+            continue
+        }
+        break
+    }
+    
+    if ($domainStartIndex -lt $parts.Count) {
+        $domainNameParts = @()
+        for ($j = $domainStartIndex; $j -lt $parts.Count; $j++) {
+            $dcPart = $parts[$j].Trim()
+            if ($dcPart -match '^DC=(.+)$') {
+                $value = $Matches[1].Trim()
+                if (-not [string]::IsNullOrWhiteSpace($value)) {
+                    $domainNameParts += $value
+                }
+            }
+        }
+        
+        if ($domainNameParts.Count -gt 0) {
+            $domainName = $domainNameParts -join '.'
             $components += @{
-                Type = $type
-                Name = $name
-                Level = $parts.Count - $i - 1
+                Type = 'DC'
+                Name = $domainName
+                Level = 0
+                IsDomainRoot = $true
             }
         }
     }
     
-    return $components
+    $hierarchyParts = @()
+    for ($k = 0; $k -lt $domainStartIndex; $k++) {
+        $hierarchyParts += $parts[$k]
+    }
+    
+    $level = if ($components.Count -gt 0) { 1 } else { 0 }
+    for ($i = $hierarchyParts.Count - 1; $i -ge 0; $i--) {
+        $part = $hierarchyParts[$i]
+        
+        if ([string]::IsNullOrWhiteSpace($part)) {
+            continue
+        }
+        
+        if ($part -match '^([A-Za-z]+)=(.+)$') {
+            $prefix = $Matches[1].ToUpperInvariant()
+            $name = $Matches[2].Trim()
+            
+            if ([string]::IsNullOrWhiteSpace($name)) {
+                continue
+            }
+            
+            $components += @{
+                Type = $prefix
+                Name = $name
+                Level = $level
+                IsDomainRoot = $false
+            }
+            $level++
+        }
+    }
+    
+    # Always return an array so callers can rely on indexing/count semantics
+    return ,$components
 }
 
 # Function to get type marker
 function Get-TypeMarker($objectClass) {
+    # Only these specific types get markers in the visualization tool
+    # OUs and containers don't get markers
     switch -Wildcard ($objectClass) {
         'user' { return ' [user]' }
         'computer' { return ' [computer]' }
         'group' { return ' [group]' }
         'contact' { return ' [contact]' }
+        'printer' { return ' [printer]' }
+        'share' { return ' [share]' }
+        'policy' { return ' [policy]' }
+        # These don't get type markers in the output
         'organizationalUnit' { return '' }
         'container' { return '' }
-        '*ServiceAccount' { return ' [user]' }
-        default { return '' }
+        'domain' { return '' }
+        'domainDNS' { return '' }
+        '*ServiceAccount*' { return ' [computer]' }  # Managed service accounts show as computers
+        default { return '' }  # Unknown types get no marker
     }
 }
 
@@ -139,6 +267,7 @@ function Get-TypeMarker($objectClass) {
 Write-Host "Building tree structure..." -ForegroundColor Cyan
 $tree = @{}
 $processedPaths = @{}
+$normalizedTypeCounts = @{}
 
 foreach ($obj in $adObjects) {
     # Skip disabled if requested
@@ -149,15 +278,44 @@ foreach ($obj in $adObjects) {
     }
     
     $dn = Get-ObjectDN $obj
-    if (-not $dn) { continue }
+    
+    # Skip if DN is null or empty
+    if ([string]::IsNullOrWhiteSpace($dn)) {
+        Write-Warning "Skipping object with empty DN: $($obj.Name)"
+        continue
+    }
+    
+    Write-Verbose "Processing: $dn"
     
     $objectClass = Get-ObjectClass $obj
+    
+    if ([string]::IsNullOrWhiteSpace($objectClass)) {
+        $objectClass = 'unknown'
+    }
+
+    if (-not $normalizedTypeCounts.ContainsKey($objectClass)) {
+        $normalizedTypeCounts[$objectClass] = 0
+    }
+    $normalizedTypeCounts[$objectClass]++
+
     $components = Parse-DN -DN $dn
+    
+    # Skip if no valid components found
+    if ($components.Count -eq 0) {
+        Write-Warning "No valid components found in DN: $dn"
+        continue
+    }
     
     # Build path
     $currentPath = ""
     for ($i = 0; $i -lt $components.Count; $i++) {
         $comp = $components[$i]
+        
+        # Validate component has a name
+        if ([string]::IsNullOrWhiteSpace($comp.Name)) {
+            Write-Warning "Empty component name found at level $i in DN: $dn"
+            continue
+        }
         
         if ($i -eq 0) {
             $currentPath = $comp.Name
@@ -165,12 +323,38 @@ foreach ($obj in $adObjects) {
             $currentPath = "$currentPath/$($comp.Name)"
         }
         
+        # Validate currentPath is not null
+        if ([string]::IsNullOrWhiteSpace($currentPath)) {
+            Write-Warning "Invalid path generated for DN: $dn (Component: $($comp.Name))"
+            continue
+        }
+        
         if (-not $processedPaths.ContainsKey($currentPath)) {
+            # Determine type based on component type and position
+            $nodeType = if ($i -eq $components.Count - 1) { 
+                # This is the leaf node, use the object's class
+                $objectClass 
+            } elseif ($comp.Type -eq 'DC' -and $comp.IsDomainRoot) {
+                # Domain component
+                'domain'
+            } elseif ($comp.Type -eq 'DC') {
+                # Non-domain DC entries (e.g., dnsZone/dnsNode) are containers
+                'container'
+            } elseif ($comp.Type -eq 'OU') {
+                # Organizational Unit
+                'organizationalUnit'
+            } elseif ($comp.Type -eq 'CN') {
+                # Container (for non-leaf CN entries)
+                'container'
+            } else {
+                'organizationalUnit'
+            }
+            
             $processedPaths[$currentPath] = @{
                 Name = $comp.Name
                 Level = $i
                 Children = @()
-                Type = if ($i -eq $components.Count - 1) { $objectClass } else { 'organizationalUnit' }
+                Type = $nodeType
                 FullPath = $currentPath
             }
             
@@ -198,8 +382,13 @@ function Write-Tree {
     $indent = '  ' * $Level
     $typeMarker = Get-TypeMarker $node.Type
     
-    # Clean computer names (remove $)
-    $displayName = $node.Name -replace '\$$', ''
+    # Clean display names
+    $displayName = $node.Name
+    
+    # Remove $ from computer names
+    if ($node.Type -eq 'computer' -and $displayName -like '*$') {
+        $displayName = $displayName -replace '\$$', ''
+    }
     
     $output = "$indent- $displayName$typeMarker"
     
@@ -242,11 +431,46 @@ if ($OutputFile) {
     $output | Set-Content -Path $OutputFile -Encoding UTF8
     Write-Host "Markdown saved to: $OutputFile" -ForegroundColor Green
     Write-Host "Total objects processed: $($processedPaths.Count)" -ForegroundColor Cyan
+    
+    # Show summary
+    Write-Host "`nObject type summary (normalized from CSV):" -ForegroundColor Yellow
+    
+    $supportedTypes = @('user', 'computer', 'group', 'contact', 'printer', 'share', 'policy', 
+                       'container', 'organizationalUnit', 'domain', 'domainDNS', 'dnsNode', 'dnsZone')
+    $unsupportedTypes = @()
+    
+    if ($normalizedTypeCounts.Count -eq 0) {
+        Write-Host "  No objects were processed from the CSV." -ForegroundColor Gray
+    } else {
+        $sortedTypes = $normalizedTypeCounts.GetEnumerator() | Sort-Object Value -Descending
+        foreach ($type in $sortedTypes) {
+            $marker = Get-TypeMarker $type.Key
+            $display = if ($marker) { "$($type.Key)$marker" } else { $type.Key }
+            Write-Host ("  {0}: {1}" -f $display, $type.Value) -ForegroundColor Gray
+            
+            # Check for unsupported types
+            if ($type.Key -notin $supportedTypes -and -not [string]::IsNullOrWhiteSpace($type.Key)) {
+                $unsupportedTypes += $type.Key
+            }
+        }
+        
+        $uniqueUnsupported = $unsupportedTypes | Where-Object { $_ } | Sort-Object -Unique
+        if ($uniqueUnsupported.Count -gt 0) {
+            Write-Warning "`nFound unsupported object types that may not display correctly:"
+            foreach ($unsupType in $uniqueUnsupported) {
+                Write-Warning "  - $unsupType"
+            }
+            Write-Host "Run Test-ObjectClassMapping.ps1 for diagnostics" -ForegroundColor Yellow
+        } else {
+            Write-Host "`nAll object classes mapped to known markers." -ForegroundColor Green
+        }
+    }
 } else {
     Write-Output $output
 }
 
-Write-Host "Conversion complete!" -ForegroundColor Green
+Write-Host "`nConversion complete!" -ForegroundColor Green
+Write-Host "Note: If you see warnings, check that your CSV has valid Distinguished Names." -ForegroundColor Yellow
 
 # Provide sample export command
 Write-Host "`nTip: To export AD objects to CSV for this script, use:" -ForegroundColor Yellow
