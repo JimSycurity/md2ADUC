@@ -1,0 +1,124 @@
+# Sample Active Directory Structure
+
+This file demonstrates the markdown format for the AD Structure Visualizer.
+Lines starting with # are ignored when rendering.
+
+- fabrikam.com
+  - Domain Controllers
+    - FAB-DC01 [computer]
+    - FAB-DC02 [computer]
+    - FAB-RODC01 [computer]
+  - Administrative
+    - Service Accounts
+      - svc_sql [user]
+      - svc_backup [user]
+      - svc_monitoring [user]
+    - Admin Groups
+      - Domain Admins [group]
+      - Enterprise Admins [group]
+      - Schema Admins [group]
+      - Backup Operators [group]
+  - Corporate Structure
+    - Executive
+      - CEO Office
+        - John CEO [user]
+        - Jane Assistant [user]
+      - Board Members [group]
+    - Finance
+      - Accounting
+        - AccountingTeam [group]
+        - Bob Accountant [user]
+        - Alice Bookkeeper [user]
+      - Payroll
+        - PayrollTeam [group]
+        - Charlie Payroll [user]
+      - Finance Computers
+        - FIN-WS001 [computer]
+        - FIN-WS002 [computer]
+        - FIN-PRINT01 [printer]
+    - IT Department
+      - Infrastructure
+        - InfraTeam [group]
+        - Dave SysAdmin [user]
+        - Eve NetAdmin [user]
+      - Development
+        - DevTeam [group]
+        - Frank Developer [user]
+        - Grace Developer [user]
+      - Security
+        - SecOps [group]
+        - Henry SecAnalyst [user]
+      - IT Resources
+        - Servers
+          - APP-SRV01 [computer]
+          - WEB-SRV01 [computer]
+          - SQL-SRV01 [computer]
+        - Workstations
+          - IT-WS001 [computer]
+          - IT-WS002 [computer]
+        - File Shares
+          - SharedDrive [share]
+          - ITTools [share]
+    - Sales
+      - Inside Sales
+        - InsideSalesTeam [group]
+        - Igor Sales [user]
+        - Julia Sales [user]
+      - Field Sales
+        - FieldSalesTeam [group]
+        - Kevin Sales [user]
+        - Laura Sales [user]
+      - Sales Resources
+        - SALES-WS001 [computer]
+        - SALES-WS002 [computer]
+        - CRM_Access [group]
+    - Human Resources
+      - HR Team
+        - HRTeam [group]
+        - Mike HR [user]
+        - Nancy HR [user]
+      - Recruitment
+        - RecruitmentTeam [group]
+        - Oscar Recruiter [user]
+      - HR Policies [policy]
+      - Employee Records [container]
+  - Remote Locations
+    - Seattle Office
+      - SEA-Users
+        - Patricia Remote [user]
+        - Quinn Remote [user]
+      - SEA-Computers
+        - SEA-WS001 [computer]
+        - SEA-WS002 [computer]
+      - SEA-Printers
+        - SEA-PRINT01 [printer]
+    - Boston Office  
+      - BOS-Users
+        - Robert Remote [user]
+        - Sarah Remote [user]
+      - BOS-Computers
+        - BOS-WS001 [computer]
+        - BOS-WS002 [computer]
+    - Austin Office
+      - AUS-Users
+        - Thomas Remote [user]
+        - Uma Remote [user]
+      - AUS-Computers
+        - AUS-WS001 [computer]
+  - Resources
+    - Public Shares
+      - CompanyDocs [share]
+      - Templates [share]
+      - Software [share]
+    - Printers
+      - MainOfficePrinter [printer]
+      - ColorPrinter [printer]
+      - PlotterDevice [printer]
+    - Distribution Lists
+      - AllEmployees [group]
+      - Managers [group]
+      - TechnicalStaff [group]
+  - Disabled Objects
+    - Disabled Users [container]
+    - Decommissioned Computers [container]
+    

@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Active Directory Users and Computers Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1400px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header h1::before {
+            content: "🏢";
+            font-size: 28px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            min-height: 600px;
+        }
+
+        .input-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-right: 1px solid #e0e0e0;
+        }
+
+        .output-section {
+            padding: 30px;
+            background: white;
+            position: relative;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 400px;
+            padding: 15px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            resize: vertical;
+            transition: border-color 0.3s;
+            background: white;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .primary-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .secondary-btn {
+            background: #28a745;
+            color: white;
+        }
+
+        .secondary-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+
+        .secondary-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .example-btn {
+            background: #6c757d;
+            color: white;
+        }
+
+        .example-btn:hover {
+            background: #5a6268;
+        }
+
+        .file-btn {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .file-btn:hover {
+            background: #138496;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(23, 162, 184, 0.4);
+        }
+
+        /* ADUC Window Styling */
+        .aduc-window {
+            background: #f0f0f0;
+            border: 2px solid #0078d4;
+            border-radius: 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .aduc-titlebar {
+            background: linear-gradient(to bottom, #0078d4, #005a9e);
+            color: white;
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .aduc-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .aduc-title::before {
+            content: "";
+            width: 16px;
+            height: 16px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect x="2" y="7" width="12" height="7" fill="%23ffd700"/><polygon points="8,2 14,7 2,7" fill="%23ffd700"/></svg>') no-repeat center;
+            background-size: contain;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 1px;
+        }
+
+        .window-control {
+            width: 46px;
+            height: 30px;
+            background: rgba(255,255,255,0);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .window-control:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .aduc-menubar {
+            background: white;
+            border-bottom: 1px solid #ccc;
+            padding: 2px 8px;
+            font-size: 13px;
+        }
+
+        .aduc-toolbar {
+            background: linear-gradient(to bottom, #f5f5f5, #e8e8e8);
+            border-bottom: 1px solid #ccc;
+            padding: 4px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .toolbar-btn {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(to bottom, #fff, #e0e0e0);
+            border: 1px solid #adadad;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .toolbar-btn:hover {
+            background: linear-gradient(to bottom, #e8f4ff, #c4e5ff);
+            border-color: #0078d4;
+        }
+
+        .toolbar-separator {
+            width: 1px;
+            background: #adadad;
+            margin: 2px 4px;
+        }
+
+        .aduc-body {
+            background: white;
+            display: flex;
+            height: 400px;
+        }
+
+        .aduc-tree {
+            flex: 1;
+            padding: 8px;
+            overflow: auto;
+            background: white;
+            font-size: 13px;
+            line-height: 20px;
+        }
+
+        /* Tree View Styling */
+        .tree-item {
+            display: flex;
+            align-items: center;
+            padding: 2px 0;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        .tree-item:hover {
+            background: #e8f4ff;
+        }
+
+        .tree-item.selected {
+            background: #cce8ff;
+        }
+
+        .tree-indent {
+            display: inline-block;
+            width: 18px;
+        }
+
+        .tree-expand {
+            width: 16px;
+            height: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 2px;
+            font-size: 10px;
+            color: #666;
+        }
+
+        .tree-icon {
+            width: 16px;
+            height: 16px;
+            margin-right: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .tree-icon.ou::before {
+            content: "📁";
+        }
+
+        .tree-icon.ou.expanded::before {
+            content: "📂";
+        }
+
+        .tree-icon.user::before {
+            content: "👤";
+        }
+
+        .tree-icon.computer::before {
+            content: "💻";
+        }
+
+        .tree-icon.group::before {
+            content: "👥";
+        }
+
+        .tree-icon.contact::before {
+            content: "📇";
+        }
+
+        .tree-icon.printer::before {
+            content: "🖨️";
+        }
+
+        .tree-icon.share::before {
+            content: "📤";
+        }
+
+        .tree-icon.policy::before {
+            content: "📋";
+        }
+
+        .tree-icon.container::before {
+            content: "📦";
+        }
+
+        .tree-icon.default::before {
+            content: "📄";
+        }
+
+        .tree-text {
+            color: #000;
+        }
+
+        .aduc-statusbar {
+            background: #f0f0f0;
+            border-top: 1px solid #ccc;
+            padding: 2px 8px;
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            gap: 20px;
+        }
+
+        .help-text {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #555;
+        }
+
+        .help-text h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .help-text code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .help-text ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+
+        .help-text li {
+            margin-bottom: 5px;
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .input-section {
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AD Structure Visualizer</h1>
+            <div style="font-size: 14px; opacity: 0.9;">Generate ADUC-style diagrams from markdown</div>
+        </div>
+
+        <div class="main-content">
+            <div class="input-section">
+                <div class="input-label">
+                    <h2>📝 Markdown Input</h2>
+                </div>
+                <textarea id="markdownInput" placeholder="Enter your markdown list here...">- contoso.com
+  - Domain Controllers
+    - DC01 [computer]
+    - DC02 [computer]
+  - Corporate
+    - Users
+      - John Smith [user]
+      - Jane Doe [user]
+      - Bob Wilson [user]
+    - Computers
+      - DESKTOP-001 [computer]
+      - LAPTOP-002 [computer]
+    - Groups
+      - Finance Team [group]
+      - IT Admins [group]
+  - Branch Offices
+    - New York
+      - NY-Users
+        - Alice Brown [user]
+      - NY-Computers
+        - NY-WS01 [computer]
+    - London
+      - UK-Users
+        - Charlie Davis [user]
+      - UK-Computers
+        - UK-WS01 [computer]</textarea>
+                
+                <div class="buttons">
+                    <button class="primary-btn" onclick="renderTree()">
+                        <span>🔄</span>
+                        Render Tree
+                    </button>
+                    <button class="secondary-btn" id="exportBtn" onclick="exportAsImage()" disabled>
+                        <span>📸</span>
+                        Export as Image
+                    </button>
+                    <button class="example-btn" onclick="loadExample()">
+                        <span>📋</span>
+                        Load Example
+                    </button>
+                </div>
+                
+                <div class="buttons" style="margin-top: 10px;">
+                    <button class="file-btn" onclick="saveMarkdown()">
+                        <span>💾</span>
+                        Save Markdown
+                    </button>
+                    <button class="file-btn" onclick="document.getElementById('fileInput').click()">
+                        <span>📂</span>
+                        Open Markdown
+                    </button>
+                    <input type="file" id="fileInput" accept=".md,.txt" style="display: none;" onchange="openMarkdown(event)">
+                </div>
+
+                <div class="help-text">
+                    <h3>📖 Quick Guide:</h3>
+                    <ul>
+                        <li>Use standard markdown unordered lists with <code>-</code> or <code>*</code></li>
+                        <li>Indent with 2 spaces for nested items</li>
+                        <li>Add object types in brackets: <code>[user]</code>, <code>[computer]</code>, <code>[group]</code></li>
+                        <li>Supported types: user, computer, group, contact, printer, share, policy, container</li>
+                        <li>Items without brackets default to OUs (folders)</li>
+                        <li><strong>Save/Load:</strong> Use the file buttons to save your markdown structures and reload them later</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="output-section">
+                <h2>🖥️ ADUC Preview</h2>
+                <div id="aducContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        function parseMarkdown(markdown) {
+            const lines = markdown.split('\n');
+            const root = { name: 'Root', type: 'ou', children: [], expanded: true };
+            const stack = [{ node: root, indent: -1 }];
+
+            lines.forEach(line => {
+                const match = line.match(/^(\s*)-\s*(.+)$/);
+                if (!match) return;
+
+                const indent = match[1].length;
+                let text = match[2].trim();
+                let type = 'ou';
+
+                // Extract type from brackets
+                const typeMatch = text.match(/^(.+?)\s*\[(\w+)\]$/);
+                if (typeMatch) {
+                    text = typeMatch[1].trim();
+                    type = typeMatch[2].toLowerCase();
+                }
+
+                const node = {
+                    name: text,
+                    type: type,
+                    children: [],
+                    expanded: true
+                };
+
+                // Find parent based on indentation
+                while (stack.length > 1 && stack[stack.length - 1].indent >= indent) {
+                    stack.pop();
+                }
+
+                const parent = stack[stack.length - 1];
+                parent.node.children.push(node);
+                stack.push({ node: node, indent: indent });
+            });
+
+            return root.children;
+        }
+
+        function createTreeHTML(nodes, level = 0) {
+            let html = '';
+            
+            nodes.forEach((node, index) => {
+                const hasChildren = node.children && node.children.length > 0;
+                const isExpanded = node.expanded !== false;
+                
+                html += '<div class="tree-item" onclick="toggleNode(event, this)">';
+                
+                // Indentation
+                for (let i = 0; i < level; i++) {
+                    html += '<span class="tree-indent"></span>';
+                }
+                
+                // Expand/Collapse button
+                if (hasChildren) {
+                    html += `<span class="tree-expand">${isExpanded ? '▼' : '▶'}</span>`;
+                } else {
+                    html += '<span class="tree-expand"></span>';
+                }
+                
+                // Icon
+                const iconClass = hasChildren && isExpanded ? `${node.type} expanded` : node.type;
+                html += `<span class="tree-icon ${iconClass}"></span>`;
+                
+                // Text
+                html += `<span class="tree-text">${escapeHtml(node.name)}</span>`;
+                html += '</div>';
+                
+                // Children
+                if (hasChildren && isExpanded) {
+                    html += `<div class="tree-children">`;
+                    html += createTreeHTML(node.children, level + 1);
+                    html += '</div>';
+                }
+            });
+            
+            return html;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function toggleNode(event, element) {
+            event.stopPropagation();
+            const expand = element.querySelector('.tree-expand');
+            const icon = element.querySelector('.tree-icon');
+            const children = element.nextElementSibling;
+            
+            if (expand && expand.textContent === '▼') {
+                expand.textContent = '▶';
+                if (icon && icon.classList.contains('ou')) {
+                    icon.classList.remove('expanded');
+                }
+                if (children && children.classList.contains('tree-children')) {
+                    children.style.display = 'none';
+                }
+            } else if (expand && expand.textContent === '▶') {
+                expand.textContent = '▼';
+                if (icon && icon.classList.contains('ou')) {
+                    icon.classList.add('expanded');
+                }
+                if (children && children.classList.contains('tree-children')) {
+                    children.style.display = 'block';
+                }
+            }
+        }
+
+        function renderTree() {
+            const markdown = document.getElementById('markdownInput').value;
+            const nodes = parseMarkdown(markdown);
+            const treeHTML = createTreeHTML(nodes);
+            
+            const aducHTML = `
+                <div class="aduc-window" id="aducWindow">
+                    <div class="aduc-titlebar">
+                        <div class="aduc-title">Active Directory Users and Computers</div>
+                        <div class="window-controls">
+                            <button class="window-control">─</button>
+                            <button class="window-control">□</button>
+                            <button class="window-control">✕</button>
+                        </div>
+                    </div>
+                    <div class="aduc-menubar">File Edit View Actions Help</div>
+                    <div class="aduc-toolbar">
+                        <div class="toolbar-btn">⬅</div>
+                        <div class="toolbar-btn">➡</div>
+                        <div class="toolbar-btn">⬆</div>
+                        <div class="toolbar-separator"></div>
+                        <div class="toolbar-btn">👤</div>
+                        <div class="toolbar-btn">👥</div>
+                        <div class="toolbar-btn">💻</div>
+                        <div class="toolbar-btn">📁</div>
+                        <div class="toolbar-separator"></div>
+                        <div class="toolbar-btn">🔍</div>
+                        <div class="toolbar-btn">🔄</div>
+                    </div>
+                    <div class="aduc-body">
+                        <div class="aduc-tree">
+                            ${treeHTML}
+                        </div>
+                    </div>
+                    <div class="aduc-statusbar">
+                        <span>${countObjects(nodes)} object(s)</span>
+                        <span>Ready</span>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('aducContainer').innerHTML = aducHTML;
+            document.getElementById('exportBtn').disabled = false;
+        }
+
+        function countObjects(nodes) {
+            let count = 0;
+            nodes.forEach(node => {
+                count++;
+                if (node.children && node.children.length > 0) {
+                    count += countObjects(node.children);
+                }
+            });
+            return count;
+        }
+
+        function exportAsImage() {
+            const element = document.getElementById('aducWindow');
+            if (!element) {
+                alert('Please render the tree first!');
+                return;
+            }
+
+            html2canvas(element, {
+                scale: 2,
+                backgroundColor: '#ffffff',
+                logging: false
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'aduc-structure.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+
+        function loadExample() {
+            const exampleMarkdown = `- contoso.com
+  - Domain Controllers
+    - DC01 [computer]
+    - DC02 [computer]
+  - Corporate
+    - Users
+      - John Smith [user]
+      - Jane Doe [user]
+      - Bob Wilson [user]
+    - Computers
+      - DESKTOP-001 [computer]
+      - LAPTOP-002 [computer]
+    - Groups
+      - Finance Team [group]
+      - IT Admins [group]
+  - Branch Offices
+    - New York
+      - NY-Users
+        - Alice Brown [user]
+      - NY-Computers
+        - NY-WS01 [computer]
+    - London
+      - UK-Users
+        - Charlie Davis [user]
+      - UK-Computers
+        - UK-WS01 [computer]`;
+            
+            document.getElementById('markdownInput').value = exampleMarkdown;
+            renderTree();
+        }
+
+        function saveMarkdown() {
+            const markdown = document.getElementById('markdownInput').value;
+            const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            
+            // Get a default filename based on current datetime
+            const now = new Date();
+            const dateStr = now.toISOString().slice(0, 10);
+            const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '-');
+            const defaultFilename = `AD-Structure_${dateStr}_${timeStr}.md`;
+            
+            // Create a download link
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = defaultFilename;
+            
+            // Trigger the download
+            document.body.appendChild(link);
+            link.click();
+            
+            // Clean up
+            setTimeout(() => {
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }, 100);
+            
+            // Show feedback
+            showNotification('Markdown file saved successfully!', 'success');
+        }
+
+        function openMarkdown(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                document.getElementById('markdownInput').value = content;
+                
+                // Auto-render the tree after loading
+                renderTree();
+                
+                // Show feedback
+                showNotification(`Loaded: ${file.name}`, 'success');
+            };
+            
+            reader.onerror = function() {
+                showNotification('Error reading file!', 'error');
+            };
+            
+            reader.readAsText(file);
+            
+            // Reset the file input so the same file can be selected again
+            event.target.value = '';
+        }
+
+        function showNotification(message, type) {
+            // Remove any existing notifications
+            const existingNotif = document.querySelector('.notification');
+            if (existingNotif) {
+                existingNotif.remove();
+            }
+            
+            // Create notification element
+            const notif = document.createElement('div');
+            notif.className = 'notification';
+            notif.textContent = message;
+            notif.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                background: ${type === 'success' ? '#28a745' : '#dc3545'};
+                color: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                font-size: 14px;
+                z-index: 10000;
+                animation: slideIn 0.3s ease-out;
+            `;
+            
+            // Add animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                @keyframes slideOut {
+                    from {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                    to {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                }
+            `;
+            
+            if (!document.querySelector('style[data-notification]')) {
+                style.setAttribute('data-notification', 'true');
+                document.head.appendChild(style);
+            }
+            
+            document.body.appendChild(notif);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                notif.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => notif.remove(), 300);
+            }, 3000);
+        }
+
+        // Load example on page load
+        window.onload = function() {
+            renderTree();
+        };
+    </script>
+</body>
+</html>
