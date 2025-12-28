@@ -44,3 +44,5 @@ This makes it perfect for:
 - Designing AD structures before implementation
 - Maintaining a library of common OU structures
 - Creating weird Active Directory themed PowerPoint slides
+
+If you want to document an existing Active Directory environment, the complementary [PowerShell scripts in the AD2Markdown directory](./AD2Markdown/README.md) will be helpful.
