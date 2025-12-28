@@ -1,5 +1,7 @@
 # md2ADUC
 Render a simulated Active Directory Users and Computers tree from a Markdown unordered list
+<img width="808" height="716" alt="image" src="https://github.com/user-attachments/assets/ae610086-c24d-48ba-8d20-4103e7471c46" />
+
 
 A vibe-coded ADUC (Active Directory Users and Computers) simulator that converts markdown lists into a realistic Windows-style tree view interface. Here's what the tool provides:
 
